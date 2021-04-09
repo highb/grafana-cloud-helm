@@ -1,0 +1,44 @@
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: promtail-daemonset
+spec:
+  selector:
+    matchLabels:
+      name: promtail
+  template:
+    metadata:
+      labels:
+        name: promtail
+    spec:
+      serviceAccount: promtail-serviceaccount
+      serviceAccountName: promtail-serviceaccount
+      volumes:
+      - name: logs
+        hostPath:
+          path: /var/log/
+      - name: promtail-config
+        configMap:
+          name: promtail-configmap
+      - hostPath:
+          path: /var/log
+          type: ""
+        name: varlog
+      - hostPath:
+          path: /var/lib/docker/containers
+          type: ""
+        name: varlibdockercontainers
+      containers:
+      - name: promtail-container
+        image: grafana/promtail
+        args:
+        - -client.url=https://{{ .Values.secrets.grafanaCloud.username }}:{{ .Values.secrets.grafanaCloud.password }}@{{ .Values.grafanaCloud.loki.loggingEndpoint }}/api/prom/push
+        - -config.file=/etc/promtail/promtail.yaml
+        volumeMounts:
+        - name: logs
+          mountPath: /var/log
+        - name: promtail-config
+          mountPath: /etc/promtail
+        - mountPath: /var/lib/docker/containers
+          name: varlibdockercontainers
+          readOnly: true
