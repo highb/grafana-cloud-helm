@@ -1,7 +1,9 @@
+---
 apiVersion: apps/v1
 kind: DaemonSet
 metadata:
   name: grafana-agent
+  namespace: {{ .Release.Namespace }}
   labels:
     app: {{ template "og-grafana-agent.fullname" . }}
     heritage: {{.Release.Service | quote }}
@@ -28,8 +30,8 @@ spec:
           valueFrom:
             fieldRef:
               fieldPath: spec.nodeName
-        image: "{{ .Values.image.repository }}:{{ default .Chart.AppVersion .Values.image.version }}"
-        imagePullPolicy: {{ .Values.image.pullPolicy }}
+        image: grafana/agent:v0.13.1
+        imagePullPolicy: IfNotPresent
         name: agent
         ports:
         - containerPort: 80

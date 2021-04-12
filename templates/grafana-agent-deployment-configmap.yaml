@@ -1,69 +1,42 @@
+---
 apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: grafana-agent-deployment
-  namespace: {{ .Release.Namespace }}
-  labels:
-    app: {{ template "og-grafana-agent.fullname" . }}
-    heritage: {{.Release.Service | quote }}
-    release: {{.Release.Name | quote }}
-    chart: "{{.Chart.Name}}-{{.Chart.Version}}"
 data:
   agent.yml: |
-    server:
-        log_level: info
     prometheus:
-        global:
-            scrape_interval: 15s
-        wal_directory: /var/lib/agent/data
         configs:
           - host_filter: false
             name: agent
             remote_write:
               - basic_auth:
-                    password: {{ .Values.secrets.grafanaCloud.password }}
-                    username: {{ .Values.secrets.grafanaCloud.username }}
+                  password: {{ .Values.secrets.grafanaCloud.password }}
+                  username: {{ .Values.secrets.grafanaCloud.username }}
                 url: {{ .Values.grafanaCloud.prometheus.remoteWriteEndpoint }}
             scrape_configs:
               - bearer_token_file: /var/run/secrets/kubernetes.io/serviceaccount/token
                 job_name: default/kubernetes
                 kubernetes_sd_configs:
                   - role: endpoints
-                relabel_configs:
-                  - action: keep
-                    regex: apiserver
-                    source_labels:
-                      - __meta_kubernetes_service_label_component
                 metric_relabel_configs:
                   - action: keep
                     regex: workqueue_queue_duration_seconds_bucket|process_cpu_seconds_total|process_resident_memory_bytes|workqueue_depth|rest_client_request_duration_seconds_bucket|workqueue_adds_total|up|rest_client_requests_total|apiserver_request_total|go_goroutines
                     source_labels:
                       - __name__
+                relabel_configs:
+                  - action: keep
+                    regex: apiserver
+                    source_labels:
+                      - __meta_kubernetes_service_label_component
                 scheme: https
                 tls_config:
                     ca_file: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
                     insecure_skip_verify: false
                     server_name: kubernetes
-              - bearer_token_file: /var/run/secrets/kubernetes.io/serviceaccount/token
-                job_name: default/agent-deployment
-                kubernetes_sd_configs:
-                  - namespaces:
-                        names:
-                          - default
-                    role: pod
-                relabel_configs:
-                  - action: keep
-                    regex: grafana-agent-deployment
-                    source_labels:
-                      - __meta_kubernetes_pod_label_name
-                  - action: replace
-                    source_labels:
-                      - __meta_kubernetes_pod_node_name
-                    target_label: instance
-                  - action: replace
-                    source_labels:
-                      - __meta_kubernetes_namespace
-                    target_label: namespace
-                tls_config:
-                    ca_file: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
-                    insecure_skip_verify: false
+        global:
+            scrape_interval: 15s
+        wal_directory: /var/lib/agent/data
+    server:
+        log_level: info
+kind: ConfigMap
+metadata:
+  name: grafana-agent-deployment
+  namespace: {{ .Release.Namespace }}

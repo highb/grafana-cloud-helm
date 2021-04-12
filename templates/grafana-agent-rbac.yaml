@@ -1,3 +1,4 @@
+---
 apiVersion: v1
 kind: ServiceAccount
 metadata:
@@ -8,16 +9,17 @@ metadata:
     heritage: {{.Release.Service | quote }}
     release: {{.Release.Name | quote }}
     chart: "{{.Chart.Name}}-{{.Chart.Version}}"
-  {{- with .Values.serviceAccount.annotations }}
-  annotations:
-    {{- toYaml . | nindent 4 }}
-  {{- end }}
 ---
-apiVersion: rbac.authorization.k8s.io/v1
+apiVersion: rbac.authorization.k8s.io/v1beta1
 kind: ClusterRole
 metadata:
   name: grafana-agent
   namespace: {{ .Release.Namespace }}
+  labels:
+    app: {{ template "og-grafana-agent.fullname" . }}
+    heritage: {{.Release.Service | quote }}
+    release: {{.Release.Name | quote }}
+    chart: "{{.Chart.Name}}-{{.Chart.Version}}"
 rules:
 - apiGroups:
   - ""
@@ -33,17 +35,19 @@ rules:
   - watch
 - nonResourceURLs:
   - /metrics
-  - /metrics/resource
-  - /metrics/cadvisor
-  - /metrics/probes
   verbs:
   - get
 ---
-apiVersion: rbac.authorization.k8s.io/v1
+apiVersion: rbac.authorization.k8s.io/v1beta1
 kind: ClusterRoleBinding
 metadata:
   name: grafana-agent
   namespace: {{ .Release.Namespace }}
+  labels:
+    app: {{ template "og-grafana-agent.fullname" . }}
+    heritage: {{.Release.Service | quote }}
+    release: {{.Release.Name | quote }}
+    chart: "{{.Chart.Name}}-{{.Chart.Version}}"
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole
